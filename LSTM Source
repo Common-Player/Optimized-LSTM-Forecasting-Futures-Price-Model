@@ -3,105 +3,44 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import tensorflow as tf
-# import matplotlib.pyplot as plt
-# from tensorflow.keras import layers
 from sklearn.preprocessing import MinMaxScaler
-#from matplotlib.dates import DateFormatter, WeekdayLocator, DayLocator, MONDAY,YEARLY1
-# Part 1 - Data Preprocessing
-# Importing the libraries
 dataset_train = pd.read_csv('D://./data/Mean_result20201102-20210416.csv') #修改点1：数据读入
-#dataset_train = pd.read_csv('E://./NSE-TATAGLOBAL.csv') 
-
 training_set = dataset_train.iloc[:, 1:2].values
-# print(dataset_train.head())
-# Feature Scaling
 sc = MinMaxScaler(feature_range=(0, 1))
 training_set_scaled = sc.fit_transform(training_set)
-# Creating a data structure with 60 timesteps and 1 output
 X_train = []
 y_train = []
 for i in range(60, 172800 ): #修改点2：步长设置
-#for i in range(60, 172800 ): #修改点2：步长设置
-#for i in range(60, 2035): 
-    X_train.append(training_set_scaled[i - 60:i, 0])#修改点3：步长设置
-    #X_train.append(training_set_scaled[i - 60:i, 0])
-    
+    X_train.append(training_set_scaled[i - 60:i, 0])#修改点3：步长设置    
     y_train.append(training_set_scaled[i, 0])
 X_train, y_train = np.array(X_train), np.array(y_train)
-# Reshaping
 X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
-
-# Part 2 - Building the RNN
-# Initialising the RNN
 regressor = tf.keras.Sequential()
-# Adding the first LSTM layer and some Dropout regularisation
 regressor.add(tf.keras.layers.LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
 regressor.add(tf.keras.layers.Dropout(0.2))
-#拟修改①units（输入的第一层）、②dropout（隐藏层）的参数
-
-# Adding a second LSTM layer and some Dropout regularisation
 regressor.add(tf.keras.layers.LSTM(units=50, return_sequences=True))
 regressor.add(tf.keras.layers.Dropout(0.2))
-# Adding a third LSTM layer and some Dropout regularisation
 regressor.add(tf.keras.layers.LSTM(units=50, return_sequences=True))
 regressor.add(tf.keras.layers.Dropout(0.2))
-# Adding a fourth LSTM layer and some Dropout regularisation
 regressor.add(tf.keras.layers.LSTM(units=50))
 regressor.add(tf.keras.layers.Dropout(0.2))
-
-# Adding the output layer
 regressor.add(tf.keras.layers.Dense(units=1))
-#regressor.add(tf.keras.layers.Dense(10, activation=tf.nn.softmax))
 tf.keras.layers.Dense(10, activation=tf.nn.softmax)#神经元数目修改 10
-
-# Compiling the RNN
 regressor.compile(optimizer='adam', loss='mean_squared_error')
-# Fitting the RNN to the Training set
 regressor.fit(X_train, y_train, epochs=1, batch_size=32)#额外修改点，训练次数，batch_size是2的指数次幂（32、64、128，防止过拟合和欠拟合）
-#regressor.fit(X_train, y_train, epochs=100, batch_size=32)
-
-# Part 3 - Making the predictions and visualising the results
-# Getting the real stock price of 2017
 dataset_test = pd.read_csv('D://./data/Mean_result20210419-20210430.csv')#修改点4：测试数据集（预测）
-#dataset_test = pd.read_csv('tatatest.csv')
-
 real_stock_price = dataset_test.iloc[:, 1:2].values
-
-# Getting the predicted stock price of 2017
-#dataset_total = pd.concat((dataset_train['price'], dataset_test['price']), axis=0)#修改点 拼接
-
-#dataset_total = dataset_train['price']#v1.1
-
 dataset_total = dataset_test['price']#v1.1
-
-#dataset_total = pd.concat((dataset_train['Open'], dataset_test['Open']), axis=0)
-
-#inputs = dataset_total[len(dataset_total) - len(dataset_test ) -60:].values #修改点5
-#inputs = dataset_total[len(dataset_total) - len(dataset_test) - 60:].values #修改点5
-#inputs = dataset_total[len(dataset_total) - len(dataset_test) - 60:].values
-#inputs = dataset_total[len(dataset_total) -60:].values#v1.2
-
 inputs = dataset_total[:60].values#v1.2
-
 inputs = inputs.reshape(-1, 1)
 inputs = sc.transform(inputs)
 X_test = []
-
 temp = []
 predicted_stock_price = []
-#for i in range(60, 2940):v1.3
 for i in range(60, 2880):
-#for i in range(60, 2940): #修改点6：
-#for i in range(60, 76):
     X_test.append(inputs[i - 60:i, 0]) #修改点7：
-    #X_test.append(inputs[i - 60:i, 0])
-#X_test = np.array(X_test)
-#X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
-#predicted_stock_price = regressor.predict(X_test)#保存训练好的模型  可能是save
-#predicted_stock_price = sc.inverse_transform(predicted_stock_price)
     X_test = np.array(X_test)
     X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
-    
     predicted_stock_price_temp = regressor.predict(X_test)
     temp = inputs
     temp = temp.tolist()
@@ -113,62 +52,37 @@ for i in range(60, 2880):
 predicted_stock_price = np.array(predicted_stock_price)
 np.array(inputs)
 predicted_stock_price = sc.inverse_transform(predicted_stock_price)
-
 temp1 = 0
-#predicted_stock_price = predicted_stock_price.tolist()
-
 temp2 = np.array(real_stock_price[:60])
 predicted_stock_price = np.array(predicted_stock_price)
 predicted_stock_price = np.concatenate([temp2,predicted_stock_price])
-    
-
-#增加精度计算的功能
 for i in range(0, 2880):
     temp1 = abs(real_stock_price [i] -predicted_stock_price [i]) + temp1
-   
 temp1 = temp1/2880
 s = '平均误差值(MAD)：'
 print (s)
 print (temp1)
-
 temp2 = 0
 for i in range(0, 2880):
    temp2 = (real_stock_price [i] -predicted_stock_price [i])**2 + temp2
-
 temp2 = temp2/2880
 s2 = '均方误差值(MSE)：'
 print (s2)
 print (temp2)
-
 temp3 = 0
 for i in range(0, 2880):
    temp3 = (real_stock_price [i] -predicted_stock_price [i]) + temp3
-
 temp3 = temp3/2880
 s3 = '平均预测误差(MFE)：'
 print (s3)
 print (temp3)
-
 temp4 = 0
 for i in range(0, 2880):
    temp4 = (abs(real_stock_price [i] -predicted_stock_price [i])/real_stock_price [i]) + temp4
-
 temp4 = 100*temp4/2880
 s4 = '平均绝对百分误差(MAPE)：'
 print (s4)
 print (temp4)
-
-# Visualising the results
-#x = ['23:50:00','23:51:00','23:52:00','23:53:00','23:54:00','23:55:00','23:56:00','23:57:00','23:58:00','23:59:00','24:00:00']
-#x = [0,17,51,68,85,102,119,136,153,170,187]
-#y = [3.05,3.051,3.052,3.053,3.054,3.055,3.056,3.057,3.058,3.059,3.06]
-#labels = ['23:50:00','23:51:00','23:52:00','23:53:00','23:54:00','23:55:00','23:56:00','23:57:00','23:58:00','23:59:00','24:00:00']
-#plt.plot(x,y)
-
-#scale_ls = range(12)
-#index_ls = ['1','2','3','4','5','6','7','8','9','10','11','12']
-#plt.xticks(scale_ls,index_ls)
-
 plt.plot(real_stock_price, color='red', label='Real Price')
 plt.plot(predicted_stock_price, color='blue', label='Predicted Price')
 plt.title('Time and sales dataset_price')
