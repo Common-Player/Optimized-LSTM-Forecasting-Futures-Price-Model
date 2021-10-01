@@ -11,4 +11,4 @@
 第31行代码处将绿色处修改为自己的测试集路径即可<br>
 修改训练次数：<br>
 ![image](https://user-images.githubusercontent.com/83214019/135588141-112ca473-fd21-4a85-87d3-744c45215c9f.png)<br>
-第59行代码处epochs变量值代表训练次数，建议修改为30以上<br>
+第30行代码处epochs变量值代表训练次数，建议修改为30以上<br>
